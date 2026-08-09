@@ -1,0 +1,21 @@
+[project]
+name = "week4-lecs-2025"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "datasets>=4.0.0",
+    "jupyter",
+    "matplotlib>=3.10.3",
+    "nbconvert[qtpdf]>=7.16.6",
+    "notebook",
+    "pytest>=8.4.1",
+    "rise",
+    "spacy>=3.7.0",
+    "torch>=2.7.1",
+    "transformers>=4.53.2",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]

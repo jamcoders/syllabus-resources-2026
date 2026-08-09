@@ -1,0 +1,21 @@
+[[Motivate and define LM. We can't ignore the fact that everyone knows ChatGPT these days, but we need to explain that ultimately it's just a probabilistic view on language. It's a model, because we don't know what language is exactly. But this model is useful "All models are wrong but some are useful." So maybe first define "model" (what were we modeling yesterday with the Skittles process?).]]
+
+[[So now we can define a Language Model. Let's start by defining a unigram model. We can "implement" one with the Skittles. We shall do it. But then that's not a good model of language because it only allows for a "vocabulary" of five words (colors).]]
+
+[[Build a unigram model based on Moby Dick `from jamcoders.datasets import moby_tokenized`. This is basically counting everything and then normalizing]]
+
+[["Generate" from the unigram model. And also depict the distribution of words (bar charts I guess? For the top 15 words? We will add a helper function to jamcoders.models for this and import it; no need to include the code in class]]
+
+[[Load a good, simple unigram model from the internet. Make sure it's "clean" so that no bad words. We're actually gonna but it in jamcoders.models]]
+
+[[Sample from it a bunch of times. And show its top 20 unigrams.]]
+
+[[Show their distribution]]
+
+[[This is a Language Model. It _is_ useful (e.g. ???), but it's not good for generating sentences as we see. What's missing?]]
+
+[[Context! This motivates bigram models. We spend the rest of the class doing that.]]
+
+[[We will train it on `from jamcoders.datasets import moby_tokenized`. Which is a list of lists, each list is a tokenized sentence]]
+
+[[We end the class by increasing the context. First we'll just preload an n-gram model for larger n, again something simple, premade and clean. We should think it's a bit better at least.]]
