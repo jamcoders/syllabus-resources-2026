@@ -7,7 +7,7 @@
 # curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Clone and navigate to the repository
-cd week4-lecs-2025
+cd week4-lecs
 
 # Install Python 3.12 (if needed)
 uv python install 3.12
