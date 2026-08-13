@@ -70,12 +70,12 @@ The `gpt2()` demo in Day 2 is `distilgpt2` saved in `~/.cache/huggingface`.
 - **Interactive demos**: Skittles sampling simulation
 
 ### Day 2: Language Modeling - From Skittles to Shakespeare
-- **File**: `lec_w4d2.ipynb`
+- **File**: `w4d2.ipynb`
 - **Topics**: Language models, unigrams, bigrams, n-grams
 - **Key concepts**: Context in language, probability-based text generation
 
 ### Day 3: Problem Solving Strategies and Memoization
-- **File**: `lec_w4d3.ipynb`
+- **File**: `w4d3.ipynb`
 - **Topics**: Problem-solving methodology, dynamic programming, memoization
 
 ---
