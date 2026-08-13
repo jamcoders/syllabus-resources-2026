@@ -1,3 +1,5 @@
+import io
+
 import pytest
 from jamcoders.models import (
     load_pretrained_unigram,
@@ -194,13 +196,13 @@ class TestPretrainedModels:
         # Mock the download
         mock_download.return_value = MagicMock()
         
-        # Mock file content
+        # Mock file content with a real file-like object
         mock_file = MagicMock()
-        mock_file.__enter__.return_value = iter([
-            'the\t1000\n',
-            'of\t500\n',
+        mock_file.__enter__.return_value = io.StringIO(
+            'the\t1000\n'
+            'of\t500\n'
             'and\t400\n'
-        ])
+        )
         mock_open.return_value = mock_file
         
         model = load_pretrained_unigram()

@@ -1,13 +1,17 @@
 # Language modeling utilities for JamCoders
+import os
 import random
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from contextlib import redirect_stderr, redirect_stdout
 from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 import urllib.request
 from tqdm import tqdm
 from better_profanity import profanity
 import json
+
+from .datasets import DatasetDownloadError, _offline_message
 
 # Constants for vocabulary size limits
 UNIGRAM_VOCAB_SIZE = 1000  # Top k words to keep for unigram model
@@ -20,7 +24,6 @@ profanity.load_censor_words()
 
 # Cache for Norvig models
 _tril_model_cache = None
-_norvig_bigrams_cache = None
 
 
 def _get_data_dir():
@@ -35,9 +38,9 @@ def _download_norvig_data():
     data_dir = _get_data_dir()
     base_url = "https://norvig.com/ngrams/"
 
+    # count_1w.txt is the only file this package reads
     files_to_download = {
         'count_1w.txt': 'count_1w.txt',
-        'count_2w.txt': 'count_2w.txt'
     }
 
     for filename, url_path in files_to_download.items():
@@ -45,7 +48,15 @@ def _download_norvig_data():
         if not file_path.exists():
             print(f"Downloading {filename}...")
             url = base_url + url_path
-            urllib.request.urlretrieve(url, str(file_path))
+            try:
+                urllib.request.urlretrieve(url, str(file_path))
+            except Exception as e:
+                # A partial file would look like a valid cache on the next run.
+                file_path.unlink(missing_ok=True)
+                raise DatasetDownloadError(
+                    _offline_message("the pre-trained n-gram counts", url,
+                                     f"ngram_data/{filename}", e)
+                ) from None
             print(f"Downloaded {filename}")
 
     return data_dir
@@ -68,12 +79,9 @@ def _load_tril_model(max_items=None, filter_bad_words=True):
         # Read more lines than needed to account for filtering
         read_limit = max_items * 2 if max_items and filter_bad_words else max_items
 
-        # Handle both real file objects and mocked iterators
-        if hasattr(f, 'readlines'):
-            lines = f.readlines()[:read_limit] if read_limit else f.readlines()
-        else:
-            # For mocked iterators, convert to list
-            lines = list(f)
+        lines = f.readlines()
+        if read_limit:
+            lines = lines[:read_limit]
 
         for line in tqdm(lines, desc="Loading unigrams", unit="words"):
             if max_items and items_loaded >= max_items:
@@ -135,7 +143,7 @@ def visualize_model(word_data: Dict[str, float], top_n: int = 15) -> None:
 def infer_ngram_order(model: Dict) -> int:
     """
     Infer the order (n) of an n-gram model from its structure and validate it.
-    
+
     Args:
         model: N-gram model dictionary
         
@@ -233,8 +241,9 @@ def generate_from_ngram_model(model: Dict, prefix: str, gen_length: int,
     Returns:
         Generated text as a string (prefix + generated words)
     """
-    # Assert prefix is in correct format (lowercase words and spaces only)
-    assert all(c.islower() or c == ' ' for c in prefix), "Prefix must contain only lowercase letters and spaces"
+    # Models are built from lowercased text, so an uppercase prefix would never match.
+    assert not any(c.isupper() for c in prefix), \
+        "Prefix must be lowercase (the model was built from lowercased text)"
 
     # Infer n from model structure
     n = infer_ngram_order(model)
@@ -297,18 +306,8 @@ def generate_from_ngram_model(model: Dict, prefix: str, gen_length: int,
 
     # Generate gen_length additional words
     for i in range(gen_length):
-        # Try to find a valid context, backing off if necessary
         current_context = context
-        found = False
-
-        # Try progressively shorter contexts (backoff)
-        for backoff_level in range(n - 1):
-            if current_context in model:
-                found = True
-                break
-            # Back off by removing the first word
-            if len(current_context) > 1:
-                current_context = current_context[1:]
+        found = current_context in model
 
         if not found:
             # If we can't find any context, try to restart from a random valid context
@@ -540,41 +539,29 @@ def load_pretrained_ngram(n: int, use_better_model: bool = False, verbose: bool 
     """
     if n == 1:
         return load_pretrained_unigram()
-    elif n == 2:
-        return load_pretrained_bigram()
 
-    # For n > 2, build from Shakespeare corpus
+    # For n >= 2, build from the Shakespeare corpus
     from .datasets import shake_words
 
     # Use vocabulary limits to control model size
-    vocab_limit = 500  # Smaller vocab for higher n
+    vocab_limit = {2: BIGRAM_VOCAB_SIZE,
+                   3: TRIGRAM_VOCAB_SIZE,
+                   4: FOURGRAM_VOCAB_SIZE}.get(n, 500)
 
-    if not verbose:
-        # Suppress all output including tqdm progress bars
-        import sys
-        import os
-        old_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
-        old_stderr = sys.stderr
-        sys.stderr = open(os.devnull, 'w')
-        try:
-            if use_better_model and n >= 3:
-                min_count = 2 if n == 3 else 3
-                model = build_better_ngram_model(shake_words, n, vocab_limit, min_count)
-            else:
-                model = build_ngram_model_from_corpus(shake_words, n, vocab_limit)
-        finally:
-            sys.stdout.close()
-            sys.stdout = old_stdout
-            sys.stderr.close()
-            sys.stderr = old_stderr
-    else:
-        print(f"Loading Shakespeare corpus for {n}-gram model...")
+    def build():
         if use_better_model and n >= 3:
             min_count = 2 if n == 3 else 3
-            model = build_better_ngram_model(shake_words, n, vocab_limit, min_count)
-        else:
-            model = build_ngram_model_from_corpus(shake_words, n, vocab_limit)
+            return build_better_ngram_model(shake_words, n, vocab_limit, min_count)
+        return build_ngram_model_from_corpus(shake_words, n, vocab_limit)
+
+    if not verbose:
+        # Silence prints and tqdm bars; redirect_* restores the streams on every exit path
+        with open(os.devnull, 'w') as devnull, \
+                redirect_stdout(devnull), redirect_stderr(devnull):
+            model = build()
+    else:
+        print(f"Loading Shakespeare corpus for {n}-gram model...")
+        model = build()
 
         # Print statistics
         total_ngrams = sum(len(v) for v in model.values())
@@ -585,31 +572,54 @@ def load_pretrained_ngram(n: int, use_better_model: bool = False, verbose: bool 
 
 # Lazy-loaded Norvig models
 def get_tril_model():
-    """Load pre-saved Norvig unigram model from JSON (lazy-loaded)"""
+    """Load the Norvig unigram model, building the fast JSON cache on first use."""
     global _tril_model_cache
     if _tril_model_cache is None:
         json_path = _get_data_dir() / "norvig_unigram_full.json"
         if json_path.exists():
-            print(f"Loading Norvig unigrams from {json_path}...")
+            print("Loading Norvig unigrams...")
             with open(json_path, 'r') as f:
                 _tril_model_cache = json.load(f)
-            print(f"Loaded {len(_tril_model_cache):,} words")
         else:
-            print(f"JSON file not found at {json_path}. Loading from source...")
+            print("Building the Norvig unigram model (first run only)...")
             _tril_model_cache = load_pretrained_unigram()
+            _save_tril_model(_tril_model_cache)
+        print(f"Loaded {len(_tril_model_cache):,} words")
     return _tril_model_cache
 
 
+def _save_tril_model(model=None):
+    """Write the parsed Norvig unigram model to its JSON cache."""
+    if model is None:
+        model = load_pretrained_unigram()
+    json_path = _get_data_dir() / "norvig_unigram_full.json"
+    with open(json_path, 'w') as f:
+        json.dump(model, f)
+    return json_path
+
+
 def gpt2(prefix, max_length=20):
-    import torch
-    from transformers import pipeline
-    from better_profanity import profanity
+    """Generate a continuation of `prefix` with distilgpt2 (profanity-filtered)."""
+    try:
+        import torch
+        from transformers import pipeline
+    except ImportError:
+        # Return rather than raise, so Run All doesn't stop at the first cell of Day 2
+        return ("[This demo needs the torch and transformers packages, which aren't "
+                "installed. Everything else in this notebook works without them -- "
+                "you can skip this cell.]")
     import logging
     # Suppress transformer warnings
     logging.getLogger("transformers").setLevel(logging.ERROR)
     # Set up the model with Apple Silicon optimization
     device = 0 if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else -1)
-    generator = pipeline('text-generation', model='distilgpt2', device=device)
+    try:
+        generator = pipeline('text-generation', model='distilgpt2', device=device)
+    except Exception as e:
+        raise DatasetDownloadError(
+            _offline_message("the distilgpt2 model", "https://huggingface.co/distilgpt2",
+                             "~/.cache/huggingface", e)
+        ) from None
 
     # Rejection sampling - try up to 10 times
     max_attempts = 10

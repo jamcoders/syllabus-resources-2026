@@ -1,5 +1,13 @@
 # JamCoders Week 4: Language Models & Word Networks
 
+This repository tracks the **current** state of the JamCoders Week 4 module. Each
+year the module is taught, that year's state is frozen as a git tag.
+
+| Year | Status | Snapshot |
+|------|--------|----------|
+| 2025 | Taught | [`2025-taught`](https://github.com/jamcoders/week4-lecs/tree/2025-taught) |
+| 2026 | In progress | `2026-taught` — *TBD, tagged after the final day*; current material lives on [`2026`](https://github.com/jamcoders/week4-lecs/tree/2026) |
+
 ## Installation
 
 ```bash
@@ -19,6 +27,34 @@ uv sync
 uv run jupyter nbclassic
 ```
 
+### Internet access
+
+`uv sync` needs internet, but everything after it is offline-friendly: no
+dependency is fetched from a URL, so `uv run` works with no network at all.
+
+The datasets and pre-trained models are downloaded **once** and then cached
+inside the package (see `jamcoders/*.json` and `jamcoders/ngram_data/`, all
+gitignored). Only that first download needs internet; if it fails, the notebook
+prints a plain-English message saying so rather than a network traceback.
+
+Before teaching on an unreliable connection, warm the caches while you still
+have one:
+
+```bash
+uv run python -m jamcoders build_cache   # also: list_cache, clear_cache
+```
+
+A student distribution of this material needs only the notebooks, `jamcoders/*.py`, and
+the four cache files the notebooks actually open:
+
+    jamcoders/moby.json                            (Day 1a)
+    jamcoders/patois.json                          (Day 1a)
+    jamcoders/shakespeare_words.json               (Days 2 and 3)
+    jamcoders/ngram_data/norvig_unigram_full.json  (Day 2, `tril_model`)
+
+`shakespeare.json` and `ngram_data/count_1w.txt` are needed only for generation (included for future use).
+The `gpt2()` demo in Day 2 is `distilgpt2` saved in `~/.cache/huggingface`.
+
 ## Lecture Notebooks
 
 ### Day 1a: Introduction to Language & Text Processing
@@ -31,24 +67,16 @@ uv run jupyter nbclassic
 - **File**: `lec_w4d1b.ipynb`
 - **Topics**: Digital randomness, probability distributions, sampling
 - **Key concepts**: Building models from data, visualization of distributions
-- **Interactive demos**: Skittles sampling simulation showing convergence to true distribution
+- **Interactive demos**: Skittles sampling simulation
 
 ### Day 2: Language Modeling - From Skittles to Shakespeare
 - **File**: `lec_w4d2.ipynb`
 - **Topics**: Language models, unigrams, bigrams, n-grams
 - **Key concepts**: Context in language, probability-based text generation
-- **Progression**: Unigram (bag of words) → Bigram → Trigram → 4-gram models
-- **Includes**: GPT-2 demo, comparison of different n-gram models
 
 ### Day 3: Problem Solving Strategies and Memoization
 - **File**: `lec_w4d3.ipynb`
-- **Topics**: Problem-solving methodology, memoization, word segmentation
-- **Key concepts**: 5-step coding approach, recursive algorithms, optimization
-- **Classic problem**: Word segmentation ("applemonapp" → ["apple", "lemon", "app"])
-
-## Labs
-
-The corresponding labs for this week, created by the wonderful TA team, will be available at https://github.com/jamcoders/labs-2025
+- **Topics**: Problem-solving methodology, dynamic programming, memoization
 
 ---
 
@@ -57,19 +85,22 @@ The corresponding labs for this week, created by the wonderful TA team, will be 
 The `jamcoders` package contains three pedagogically useful wrapper modules that provide convenient access to datasets and utilities:
 
 ### datasets.py
-- **Purpose**: Provides easy access to text datasets without overwhelming students with file I/O
-- **Datasets available**:
+- Includes:
   - `moby`: Sentences from Moby Dick (used Day 1 only)
   - `patois`: Jamaican Patois NLI sentences (Armstrong, Hewitt, Manning; EMNLP Findings 2022)
   - `shake`: All Shakespeare words as a flat list (from John DeNero, via Peter Norvig's website)
   - `shake_sentences`: Shakespeare sentences (from John DeNero, via Peter Norvig's website)
   - `shake_words`: Shakespeare tokenized by sentence
-- **Features**: Lazy loading, automatic downloading, caching for performance
+- **Tokenization**: `tokenize(text)` lowercases and splits on punctuation, keeping
+  contractions and possessives whole (`isn't`, `hamlet's`, `o'er`). It is a single
+  regex so students can read it, and re-tokenizing all of
+  Shakespeare takes under a second. Cached token files record `tokenizer_version`
+  and rebuild themselves if that constant in `datasets.py` changes.
 
 ### models.py
-- **Purpose**: Language modeling utilities and pre-trained models
-- **Key functions**:
-  - `build_model()`: Creates probability distributions from data
+- Includes:
+  - `build_ngram_model_from_corpus(sentences, n)`
+  - `build_better_ngram_model(...)`: same, with rare n-grams filtered out
   - `visualize_model()`: Bar chart visualization of word distributions
   - `generate_from_ngram_model()`: Text generation from n-gram models
   - `gpt2()`: Simple wrapper for GPT-2 text generation
@@ -78,11 +109,7 @@ The `jamcoders` package contains three pedagogically useful wrapper modules that
   - `load_pretrained_ngram(n)`: Load n-gram models (bigram, trigram, etc.)
 
 ### random.py
-- **Purpose**: Random sampling utilities with pedagogical visualizations
-- **Key functions**:
-  - `sample_from_list()`: Uniform sampling from lists
-  - `sample_from_dict()`: Weighted sampling from probability dictionaries
-  - `visualize()`: Interactive Skittles visualization showing sampling convergence
-- **Teaching tool**: The visualization helps students understand how sampling approaches true distributions
-
----
+- Includes:
+  - `sample_from_list()`: Sample from list uniformly at random
+  - `sample_from_dict()`: Sample key according to probabilities in values
+  - `visualize()`: Skittles visualization

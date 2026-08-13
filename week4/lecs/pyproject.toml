@@ -1,21 +1,40 @@
 [project]
-name = "week4-lecs-2025"
+name = "week4-lecs"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "better-profanity>=0.7.0",
     "datasets>=4.0.0",
     "jupyter",
     "matplotlib>=3.10.3",
     "nbconvert[qtpdf]>=7.16.6",
     "notebook",
+    "numpy",
     "pytest>=8.4.1",
-    "rise",
-    "spacy>=3.7.0",
+    "rise==5.7.1",  # 5.x is nbclassic-only; see RISE-CHEATSHEET.md
     "torch>=2.7.1",
+    "tqdm",
     "transformers>=4.53.2",
 ]
 
+# Pull PyTorch from the CPU-only wheel index so the multi-GB NVIDIA/CUDA stack
+# isn't downloaded on this CPU-only laptop. distilgpt2 inference already falls
+# back to CPU (jamcoders/models.py).
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+# Deliberately no [build-system]: the camp's preamble package is also named
+# `jamcoders`, so this one must stay un-installed and repo-local (see TODOs.md).
+
 [tool.pytest.ini_options]
+# The jamcoders package lives at the repo root (not pip-installed), so put the
+# root on sys.path for collection — otherwise `import jamcoders` fails under uv/CLI.
+pythonpath = ["."]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]

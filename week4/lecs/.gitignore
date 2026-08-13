@@ -173,7 +173,7 @@ cython_debug/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+.idea/
 
 # Abstra
 # Abstra is an AI-powered process automation framework.
@@ -211,7 +211,13 @@ __marimo__/
 # They contain public domain text (Moby Dick) and dataset samples (JamPatoisNLI)
 # Excluding from repo to keep it clean - they'll be recreated automatically
 jamcoders/moby.json
+jamcoders/moby_tokenized.json
 jamcoders/patois.json
+jamcoders/shakespeare.json
+jamcoders/shakespeare_words.json
 
 # Downloaded n-gram data
 jamcoders/ngram_data/
+
+# Instructor-only: gives away the Skittles reveal
+lec_w4d1b-demo.md
