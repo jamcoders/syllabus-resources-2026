@@ -58,13 +58,13 @@ The `gpt2()` demo in Day 2 is `distilgpt2` saved in `~/.cache/huggingface`.
 ## Lecture Notebooks
 
 ### Day 1a: Introduction to Language & Text Processing
-- **File**: `lec_w4d1a.ipynb`
+- **File**: `w4d1a.ipynb`
 - **Topics**: Introduction to language algorithms, working with text data, import statements
 - **Key concepts**: String processing, counting words, edge cases in language
 - **Datasets introduced**: Moby Dick sentences, Jamaican Patois NLI (Armstrong, Hewitt, Manning; EMNLP Findings 2022)
 
 ### Day 1b: Randomness & Probability with Skittles
-- **File**: `lec_w4d1b.ipynb`
+- **File**: `w4d1b.ipynb`
 - **Topics**: Digital randomness, probability distributions, sampling
 - **Key concepts**: Building models from data, visualization of distributions
 - **Interactive demos**: Skittles sampling simulation
